@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.SOKOYANGU" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.SOKOMKONONI" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.SHEREHEKE" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Splash Screen theme -->
+    <style name="Theme.SplashScreen" parent="Theme.SplashScreen.IconBackground">
+        <item name="windowSplashScreenBackground">@color/purple_500</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.SHEREHEKE</item>
+    </style>
+</resources>
