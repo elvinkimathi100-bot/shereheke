@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -35,7 +36,7 @@ fun LoadingScreen(message: String = "Preparing your experience...") {
 
 @Composable
 fun DotsLoadingAnimation() {
-    val infiniteTransition = rememberInfiniteTransition()
+    val infiniteTransition = rememberInfiniteTransition(label = "dots_loading")
     
     val delayUnit = 100
 
@@ -47,7 +48,8 @@ fun DotsLoadingAnimation() {
             animationSpec = infiniteRepeatable(
                 animation = tween(400, delayMillis = delay),
                 repeatMode = RepeatMode.Reverse
-            )
+            ),
+            label = "dot_scale"
         )
         Box(
             modifier = Modifier
@@ -62,4 +64,10 @@ fun DotsLoadingAnimation() {
         Dot(delayUnit)
         Dot(delayUnit * 2)
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoadingScreenPreview() {
+    LoadingScreen()
 }

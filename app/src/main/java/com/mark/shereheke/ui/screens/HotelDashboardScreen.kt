@@ -10,15 +10,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.mark.shereheke.models.sampleEvents
+import androidx.navigation.compose.rememberNavController
+import com.mark.shereheke.data.EventViewModel
+import com.mark.shereheke.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HotelDashboardScreen(navController: NavController) {
-    // For simplicity, we just filter events by a fake hotel
-    val hotelEvents = sampleEvents.filter { it.venue.contains("Hilton") }
+fun HotelDashboardScreen(navController: NavController, eventViewModel: EventViewModel = viewModel()) {
+    // In a real app, you would filter by the logged-in hotel's ID or venue name
+    val hotelEvents = eventViewModel.events
 
     Scaffold(
         topBar = {
@@ -32,7 +36,7 @@ fun HotelDashboardScreen(navController: NavController) {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* Navigate to Create Event */ }) {
+            FloatingActionButton(onClick = { navController.navigate(Screen.CreateEvent.route) }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Event")
             }
         }
@@ -45,28 +49,41 @@ fun HotelDashboardScreen(navController: NavController) {
         ) {
             Text(text = "My Events", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
-            LazyColumn {
-                items(hotelEvents) { event ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        Row(
+            
+            if (hotelEvents.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Text("No events found. Tap + to add one.")
+                }
+            } else {
+                LazyColumn {
+                    items(hotelEvents) { event ->
+                        Card(
                             modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
                         ) {
-                            Column {
-                                Text(text = event.title, style = MaterialTheme.typography.titleMedium)
-                                Text(text = event.date, style = MaterialTheme.typography.bodySmall)
+                            Row(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(text = event.title, style = MaterialTheme.typography.titleMedium)
+                                    Text(text = event.date, style = MaterialTheme.typography.bodySmall)
+                                }
+                                Text(text = "KES ${event.ticketPrice}", fontWeight = FontWeight.Bold)
                             }
-                            Text(text = "KES ${event.ticketPrice}", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HotelDashboardScreenPreview() {
+    HotelDashboardScreen(rememberNavController())
 }

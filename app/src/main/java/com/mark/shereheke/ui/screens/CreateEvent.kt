@@ -1,18 +1,18 @@
 package com.mark.shereheke.ui.screens
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,20 +20,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
+import com.mark.shereheke.data.EventViewModel
 import com.mark.shereheke.models.Event
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun AddEventScreen(navController: NavController) {
+fun AddEventScreen(navController: NavController, eventViewModel: EventViewModel = viewModel()) {
 
     var eventTitle by remember { mutableStateOf("") }
     var eventDescription by remember { mutableStateOf("") }
@@ -45,8 +48,9 @@ fun AddEventScreen(navController: NavController) {
     var totalTickets by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
 
     val categories = listOf(
         "Music", "Food & Drink", "Arts", "Sports",
@@ -91,7 +95,7 @@ fun AddEventScreen(navController: NavController) {
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -176,63 +180,45 @@ fun AddEventScreen(navController: NavController) {
 
             Button(
                 onClick = {
-
-                    isLoading = true
-
-                    val database = FirebaseDatabase.getInstance().reference
-                    val storage = FirebaseStorage.getInstance().reference
-
-                    val eventId = database.child("events").push().key ?: return@Button
-
-                    fun saveEvent(imageUrl: String) {
-                        val event = Event(
-                            id = eventId,
-                            title = eventTitle,
-                            description = eventDescription,
-                            date = eventDate,
-                            time = eventTime,
-                            venue = eventVenue,
-                            city = eventCity,
-                            category = selectedCategory,
-                            ticketPrice = ticketPrice,
-                            totalTickets = totalTickets,
-                            imageUrl = imageUrl
-                        )
-
-                        database.child("events").child(eventId)
-                            .setValue(event)
-                            .addOnSuccessListener {
-                                isLoading = false
-                                showSuccess = true
-                            }
-                            .addOnFailureListener {
-                                isLoading = false
-                            }
+                    if (imageUri == null) {
+                        Toast.makeText(context, "Please select an image", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (eventTitle.isBlank() || eventVenue.isBlank()) {
+                        Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
+                        return@Button
                     }
 
-                    if (imageUri != null) {
+                    val event = Event(
+                        title = eventTitle,
+                        description = eventDescription,
+                        date = eventDate,
+                        time = eventTime,
+                        venue = eventVenue,
+                        city = eventCity,
+                        category = selectedCategory,
+                        ticketPrice = ticketPrice,
+                        totalTickets = totalTickets
+                    )
 
-                        val imageRef = storage.child("event_images/$eventId.jpg")
-
-                        imageRef.putFile(imageUri!!)
-                            .continueWithTask { imageRef.downloadUrl }
-                            .addOnSuccessListener { uri ->
-                                saveEvent(uri.toString())
-                            }
-                            .addOnFailureListener {
-                                isLoading = false
-                            }
-
-                    } else {
-                        saveEvent("")
-                    }
+                    eventViewModel.uploadImageAndAddEvent(
+                        context = context,
+                        imageUri = imageUri!!,
+                        event = event,
+                        onSuccess = {
+                            showSuccess = true
+                        },
+                        onError = { error ->
+                            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                        }
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp),
-                enabled = !isLoading
+                enabled = !eventViewModel.isUploading
             ) {
-                if (isLoading) {
+                if (eventViewModel.isUploading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
                     Icon(Icons.Default.CloudUpload, contentDescription = null)
@@ -242,4 +228,45 @@ fun AddEventScreen(navController: NavController) {
             }
         }
     }
+}
+
+@Composable
+fun SectionLabel(icon: String, title: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(icon, fontSize = 18.sp)
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = title,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+fun EventTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = { Text(placeholder) },
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        singleLine = true
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AddEventScreenPreview() {
+    AddEventScreen(rememberNavController())
 }

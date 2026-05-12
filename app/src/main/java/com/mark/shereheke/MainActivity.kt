@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.remember
+import androidx.navigation.compose.rememberNavController
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.mark.shereheke.navigation.AppNavigation
 import com.mark.shereheke.ui.theme.SHEREHEKETheme
@@ -15,7 +17,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SHEREHEKETheme {
-                AppNavigation()
+                val navController = rememberNavController()
+                AppNavigation(navController = navController)
             }
         }
     }

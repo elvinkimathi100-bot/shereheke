@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -23,15 +22,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import com.mark.shereheke.data.EventViewModel
 import com.mark.shereheke.models.Event
-import com.mark.shereheke.models.sampleEvents
 import com.mark.shereheke.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = viewModel()) {
+    val events = eventViewModel.events
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -90,8 +93,8 @@ fun HomeScreen(navController: NavController) {
                     IconButton(onClick = { navController.navigate(Screen.MyTickets.route) }) {
                         Icon(Icons.Default.ConfirmationNumber, contentDescription = "Tickets", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.FavoriteBorder, contentDescription = "Likes", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    IconButton(onClick = { navController.navigate(Screen.HotelDashboard.route) }) {
+                        Icon(Icons.Default.Dashboard, contentDescription = "Dashboard", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -115,21 +118,31 @@ fun HomeScreen(navController: NavController) {
                 LuxuryChip("Gala")
             }
 
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                item {
-                    Text(
-                        text = "Featured Experiences",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+            if (events.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(text = "Searching for experiences...", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
-                items(sampleEvents) { event ->
-                    FeaturedEventCard(event = event) {
-                        navController.navigate(Screen.EventDetail.createRoute(event.id))
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    item {
+                        Text(
+                            text = "Featured Experiences",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+                    items(events) { event ->
+                        FeaturedEventCard(event = event) {
+                            navController.navigate(Screen.EventDetail.createRoute(event.id))
+                        }
                     }
                 }
             }
@@ -166,7 +179,16 @@ fun FeaturedEventCard(event: Event, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Placeholder Image with Gradient Overlay
+            
+            // Display Real Image from Cloudinary
+            AsyncImage(
+                model = event.imageUrl.ifEmpty { "https://images.unsplash.com/photo-1492684223066-81342ee5ff30" },
+                contentDescription = event.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Gradient Overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -176,15 +198,7 @@ fun FeaturedEventCard(event: Event, onClick: () -> Unit) {
                             startY = 400f
                         )
                     )
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // Simulated image base
-            ) {
-                Icon(
-                    Icons.Default.Image,
-                    contentDescription = null,
-                    modifier = Modifier.align(Alignment.Center).size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
-                )
-            }
+            )
 
             // Date Badge (Floating Top Left)
             Surface(
@@ -197,18 +211,27 @@ fun FeaturedEventCard(event: Event, onClick: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val dateParts = event.date.split(" ")
-                    Text(
-                        text = dateParts[0].uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Text(
-                        text = dateParts[1].replace(",", ""),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    if (dateParts.size >= 2) {
+                        Text(
+                            text = dateParts[0].uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            text = dateParts[1].replace(",", ""),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text(
+                            text = event.date,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
 

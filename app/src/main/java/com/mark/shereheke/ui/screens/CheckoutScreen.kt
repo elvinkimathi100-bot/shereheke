@@ -7,8 +7,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.mark.shereheke.models.sampleEvents
 import com.mark.shereheke.navigation.Screen
 
@@ -61,7 +63,7 @@ fun CheckoutScreen(navController: NavController, eventId: String?) {
                         }
                     }
                 }
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -81,4 +83,10 @@ fun CheckoutScreen(navController: NavController, eventId: String?) {
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun CheckoutScreenPreview() {
+    CheckoutScreen(rememberNavController(), sampleEvents[0].id)
 }

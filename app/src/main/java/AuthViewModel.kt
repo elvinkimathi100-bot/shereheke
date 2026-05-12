@@ -2,11 +2,9 @@ import android.content.Context
 import android.widget.Toast
 import androidx.navigation.NavController
 import com.mark.shereheke.models.UserModel
-import com.mark.shereheke.navigation.ROUTE_DASHBOARD
-import com.mark.shereheke.navigation.ROUTE_SIGNUP
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
-import com.mark.shereheke.navigation.ROUTE_HOME
+import com.mark.shereheke.navigation.Screen
 
 class AuthViewModel(var navController: NavController, var context: Context){
     private val mAuth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -39,15 +37,17 @@ class AuthViewModel(var navController: NavController, var context: Context){
 
                         if (result.isSuccessful){
                             Toast.makeText(context, "Registered Successfully", Toast.LENGTH_LONG).show()
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Signup.route) { inclusive = true }
+                            }
                         } else {
                             Toast.makeText(context, "${result.exception!!.message}", Toast.LENGTH_LONG).show()
-                            navController.navigate(ROUTE_SIGNUP)
                         }
 
                     }
 
                 } else {
-                    navController.navigate(ROUTE_SIGNUP)
+                    Toast.makeText(context, "Signup Failed: ${it.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -70,21 +70,27 @@ class AuthViewModel(var navController: NavController, var context: Context){
                     userRef.get().addOnSuccessListener { snapshot ->
                         val role = snapshot.child("role").value?.toString() ?: "user"
 
-                        Toast.makeText(context, "Success", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Login Success", Toast.LENGTH_SHORT).show()
 
                         if (role == "admin") {
-                            navController.navigate(ROUTE_DASHBOARD)
+                            navController.navigate(Screen.HotelDashboard.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
                         } else {
-                            navController.navigate(ROUTE_DASHBOARD)
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
                         }
 
                     }.addOnFailureListener {
                         Toast.makeText(context, "Failed to fetch user role", Toast.LENGTH_SHORT).show()
-                        navController.navigate(ROUTE_DASHBOARD)
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
 
                 } else {
-                    Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Login Failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -92,7 +98,9 @@ class AuthViewModel(var navController: NavController, var context: Context){
 
     fun logout(){
         mAuth.signOut()
-        navController.navigate(ROUTE_DASHBOARD)
+        navController.navigate(Screen.Login.route) {
+            popUpTo(0) { inclusive = true }
+        }
     }
 
     fun isLoggedIn(): Boolean = mAuth.currentUser != null
