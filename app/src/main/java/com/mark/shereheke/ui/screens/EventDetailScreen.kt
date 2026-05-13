@@ -17,9 +17,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
+import com.mark.shereheke.data.EventViewModel
 import com.mark.shereheke.models.sampleEvents
 import com.mark.shereheke.navigation.Screen
 
@@ -27,9 +29,11 @@ import com.mark.shereheke.navigation.Screen
 @Composable
 fun EventDetailScreen(
     navController: NavController,
-    eventId: String?
+    eventId: String?,
+    eventViewModel: EventViewModel = viewModel()
 ) {
-    val event = sampleEvents.find { it.id == eventId }
+    // Find the event from the real-time list instead of hardcoded samples
+    val event = eventViewModel.events.find { it.id == eventId }
 
     val scrollState = rememberScrollState()
 
@@ -182,7 +186,11 @@ fun EventDetailScreen(
                 }
             }
         } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Event not found")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Loading event details...")
+            }
         }
     }
 }

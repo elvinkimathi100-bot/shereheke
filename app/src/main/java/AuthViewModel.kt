@@ -1,13 +1,41 @@
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavController
 import com.mark.shereheke.models.UserModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.mark.shereheke.navigation.Screen
 
 class AuthViewModel(var navController: NavController, var context: Context){
     private val mAuth: FirebaseAuth = FirebaseAuth.getInstance()
+    
+    var userData by mutableStateOf<UserModel?>(null)
+        private set
+
+    init {
+        fetchUserData()
+    }
+
+    fun fetchUserData() {
+        val uid = mAuth.currentUser?.uid
+        if (uid != null) {
+            FirebaseDatabase.getInstance().getReference("Users/$uid")
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        userData = snapshot.getValue(UserModel::class.java)
+                    }
+                    override fun onCancelled(error: DatabaseError) {
+                        // Handle error if needed
+                    }
+                })
+        }
+    }
 
     fun signup(username:String, email:String, password:String, confirmpassword:String){
 
@@ -71,6 +99,8 @@ class AuthViewModel(var navController: NavController, var context: Context){
                         val role = snapshot.child("role").value?.toString() ?: "user"
 
                         Toast.makeText(context, "Login Success", Toast.LENGTH_SHORT).show()
+                        
+                        fetchUserData() // Refresh user data after login
 
                         if (role == "admin") {
                             navController.navigate(Screen.HotelDashboard.route) {
@@ -98,6 +128,7 @@ class AuthViewModel(var navController: NavController, var context: Context){
 
     fun logout(){
         mAuth.signOut()
+        userData = null
         navController.navigate(Screen.Login.route) {
             popUpTo(0) { inclusive = true }
         }

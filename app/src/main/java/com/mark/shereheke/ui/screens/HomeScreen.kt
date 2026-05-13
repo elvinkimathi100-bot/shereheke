@@ -1,5 +1,6 @@
 package com.mark.shereheke.ui.screens
 
+import AuthViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,12 +13,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -29,11 +32,15 @@ import coil.compose.AsyncImage
 import com.mark.shereheke.data.EventViewModel
 import com.mark.shereheke.models.Event
 import com.mark.shereheke.navigation.Screen
+import com.mark.shereheke.ui.theme.RoyalGold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = viewModel()) {
     val events = eventViewModel.events
+    val context = LocalContext.current
+    val authViewModel = remember { AuthViewModel(navController, context) }
+    val user = authViewModel.userData
 
     Scaffold(
         topBar = {
@@ -41,9 +48,8 @@ fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = vi
                 title = {
                     Column {
                         Text(
-                            text = "Good Evening,",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Hello ${user?.fullname?.split(" ")?.get(0) ?: "Guest"},",
+                            style = MaterialTheme.typography.labelMedium
                         )
                         Text(
                             text = "Explore Sherehe",
@@ -58,11 +64,15 @@ fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = vi
                             .padding(end = 16.dp)
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                            .background(RoyalGold)
+                            .clickable { /* Handle profile click */ },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile", modifier = Modifier.size(20.dp))
+                        Text(
+                            text = user?.fullname?.take(1)?.uppercase() ?: "",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -71,7 +81,6 @@ fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = vi
             )
         },
         bottomBar = {
-            // Floating Bottom Navigation Style
             Surface(
                 modifier = Modifier
                     .padding(horizontal = 24.dp, vertical = 20.dp)
@@ -105,7 +114,6 @@ fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = vi
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Categories
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,8 +187,6 @@ fun FeaturedEventCard(event: Event, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            
-            // Display Real Image from Cloudinary
             AsyncImage(
                 model = event.imageUrl.ifEmpty { "https://images.unsplash.com/photo-1492684223066-81342ee5ff30" },
                 contentDescription = event.title,
@@ -188,7 +194,6 @@ fun FeaturedEventCard(event: Event, onClick: () -> Unit) {
                 contentScale = ContentScale.Crop
             )
 
-            // Gradient Overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -200,7 +205,6 @@ fun FeaturedEventCard(event: Event, onClick: () -> Unit) {
                     )
             )
 
-            // Date Badge (Floating Top Left)
             Surface(
                 color = MaterialTheme.colorScheme.primary,
                 shape = RoundedCornerShape(12.dp),
@@ -235,7 +239,6 @@ fun FeaturedEventCard(event: Event, onClick: () -> Unit) {
                 }
             }
 
-            // Info (Bottom)
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -277,9 +280,7 @@ fun FeaturedEventCard(event: Event, onClick: () -> Unit) {
     }
 }
 
-// Helper
 fun borderStroke(width: androidx.compose.ui.unit.Dp, color: Color) = androidx.compose.foundation.BorderStroke(width, color)
-
 
 @Composable
 @Preview(showBackground = true)

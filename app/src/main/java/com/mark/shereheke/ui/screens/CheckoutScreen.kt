@@ -9,15 +9,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.mark.shereheke.data.EventViewModel
 import com.mark.shereheke.models.sampleEvents
 import com.mark.shereheke.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CheckoutScreen(navController: NavController, eventId: String?) {
-    val event = sampleEvents.find { it.id == eventId }
+fun CheckoutScreen(
+    navController: NavController,
+    eventId: String?,
+    eventViewModel: EventViewModel = viewModel()
+) {
+    val event = eventViewModel.events.find { it.id == eventId }
     var quantity by remember { mutableStateOf(1) }
 
     Scaffold(
@@ -81,6 +87,13 @@ fun CheckoutScreen(navController: NavController, eventId: String?) {
                     Text("Proceed to Payment")
                 }
             }
+        } ?: Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            Text("Event not found")
         }
     }
 }
