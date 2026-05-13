@@ -49,10 +49,14 @@ fun AppNavigation(navController: NavHostController) {
 
         composable(
             route = Screen.Payment.route,
-            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("eventId") { type = NavType.StringType },
+                navArgument("quantity") { type = NavType.IntType }
+            )
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId")
-            PaymentScreen(navController, eventId)
+            val quantity = backStackEntry.arguments?.getInt("quantity") ?: 1
+            PaymentScreen(navController, eventId, quantity)
         }
     }
 }

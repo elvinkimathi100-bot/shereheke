@@ -12,6 +12,7 @@ import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.callback.UploadCallback
 import com.google.firebase.database.*
 import com.mark.shereheke.models.Event
+import com.mark.shereheke.models.Wine
 
 class EventViewModel : ViewModel() {
 
@@ -69,8 +70,97 @@ class EventViewModel : ViewModel() {
     }
 
     // ─────────────────────────────────────────────
-    // UPLOAD EVENT BANNER / IMAGE TO CLOUDINARY
+    // UPLOAD EVENT BANNER AND WINES TO CLOUDINARY
     // ─────────────────────────────────────────────
+    fun uploadEventWithWines(
+        context: Context,
+        bannerUri: Uri,
+        wineUris: List<Pair<String, Uri>>, // List of (Wine Name, Image Uri)
+        event: Event,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        isUploading = true
+        
+        // 1. Upload Banner
+        MediaManager.get().upload(bannerUri)
+            .option("folder", "events")
+            .callback(object : UploadCallback {
+                override fun onStart(requestId: String?) {}
+                override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {}
+                override fun onSuccess(requestId: String?, resultData: Map<*, *>?) {
+                    val bannerUrl = resultData?.get("secure_url") as? String
+                    if (bannerUrl != null) {
+                        // 2. Upload Wine Images if any
+                        if (wineUris.isEmpty()) {
+                            addEvent(event.copy(imageUrl = bannerUrl), {
+                                isUploading = false
+                                onSuccess()
+                            }, { error ->
+                                isUploading = false
+                                onError(error)
+                            })
+                        } else {
+                            uploadWines(context, wineUris, bannerUrl, event, onSuccess, onError)
+                        }
+                    } else {
+                        isUploading = false
+                        onError("Failed to get banner URL")
+                    }
+                }
+                override fun onError(requestId: String?, error: ErrorInfo?) {
+                    isUploading = false
+                    onError(error?.description ?: "Banner upload error")
+                }
+                override fun onReschedule(requestId: String?, error: ErrorInfo?) {}
+            }).dispatch()
+    }
+
+    private fun uploadWines(
+        context: Context,
+        wineUris: List<Pair<String, Uri>>,
+        bannerUrl: String,
+        event: Event,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val uploadedWines = mutableListOf<Wine>()
+        var uploadCount = 0
+
+        wineUris.forEach { (wineName, uri) ->
+            MediaManager.get().upload(uri)
+                .option("folder", "wines")
+                .callback(object : UploadCallback {
+                    override fun onStart(requestId: String?) {}
+                    override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {}
+                    override fun onSuccess(requestId: String?, resultData: Map<*, *>?) {
+                        val wineUrl = resultData?.get("secure_url") as? String
+                        if (wineUrl != null) {
+                            uploadedWines.add(Wine(name = wineName, imageUrl = wineUrl))
+                        }
+                        uploadCount++
+                        if (uploadCount == wineUris.size) {
+                            addEvent(event.copy(imageUrl = bannerUrl, wines = uploadedWines), {
+                                isUploading = false
+                                onSuccess()
+                            }, { error ->
+                                isUploading = false
+                                onError(error)
+                            })
+                        }
+                    }
+                    override fun onError(requestId: String?, error: ErrorInfo?) {
+                        // Even if one wine fails, we might want to continue or stop.
+                        // For simplicity, let's stop on first error.
+                        isUploading = false
+                        onError("Wine upload failed: ${error?.description}")
+                    }
+                    override fun onReschedule(requestId: String?, error: ErrorInfo?) {}
+                }).dispatch()
+        }
+    }
+
+    // Keep the old one for backward compatibility if needed, or update it
     fun uploadImageAndAddEvent(
         context: Context,
         imageUri: Uri,
@@ -78,45 +168,6 @@ class EventViewModel : ViewModel() {
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        isUploading = true
-        
-        MediaManager.get().upload(imageUri)
-            .option("folder", "events")
-            .callback(object : UploadCallback {
-                override fun onStart(requestId: String?) {
-                    Log.d("Cloudinary", "Upload started")
-                }
-
-                override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {
-                    Log.d("Cloudinary", "Uploading: $bytes / $totalBytes")
-                }
-
-                override fun onSuccess(requestId: String?, resultData: Map<*, *>?) {
-                    val imageUrl = resultData?.get("secure_url") as? String
-                    if (imageUrl != null) {
-                        val finalEvent = event.copy(imageUrl = imageUrl)
-                        addEvent(finalEvent, {
-                            isUploading = false
-                            onSuccess()
-                        }, { error ->
-                            isUploading = false
-                            onError(error)
-                        })
-                    } else {
-                        isUploading = false
-                        onError("Failed to get image URL from Cloudinary")
-                    }
-                }
-
-                override fun onError(requestId: String?, error: ErrorInfo?) {
-                    isUploading = false
-                    onError(error?.description ?: "Cloudinary upload error")
-                }
-
-                override fun onReschedule(requestId: String?, error: ErrorInfo?) {
-                    isUploading = false
-                    onError("Upload rescheduled: ${error?.description}")
-                }
-            }).dispatch()
+        uploadEventWithWines(context, imageUri, emptyList(), event, onSuccess, onError)
     }
 }

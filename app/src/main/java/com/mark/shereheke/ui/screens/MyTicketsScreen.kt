@@ -26,22 +26,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.mark.shereheke.data.TicketViewModel
 import com.mark.shereheke.models.Ticket
 import com.mark.shereheke.ui.theme.RoyalGold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyTicketsScreen(navController: NavController) {
+fun MyTicketsScreen(navController: NavController, ticketViewModel: TicketViewModel = viewModel()) {
     val context = LocalContext.current
     val authViewModel = remember { AuthViewModel(navController, context) }
     val user = authViewModel.userData
-
-    val tickets = listOf(
-        Ticket("T1", "1", "Salsa Night", "Oct 25, 2024", "Nairobi, Hilton", 1500.0, 2, "Confirmed"),
-        Ticket("T2", "3", "Sunday Brunch", "Nov 3, 2024", "Nairobi, Kempinski", 4500.0, 1, "Confirmed")
-    )
+    val tickets = ticketViewModel.tickets
 
     Scaffold(
         topBar = {
@@ -84,15 +82,21 @@ fun MyTicketsScreen(navController: NavController) {
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            items(tickets) { ticket ->
-                TicketCard(ticket = ticket)
+        if (tickets.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+                Text("You haven't booked any tickets yet.")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentPadding = PaddingValues(24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                items(tickets) { ticket ->
+                    TicketCard(ticket = ticket)
+                }
             }
         }
     }

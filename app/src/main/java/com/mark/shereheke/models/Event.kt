@@ -1,5 +1,10 @@
 package com.mark.shereheke.models
 
+data class Wine(
+    val name: String = "",
+    val imageUrl: String = ""
+)
+
 data class Event(
     val id: String = "",
     val title: String = "",
@@ -12,6 +17,7 @@ data class Event(
     val ticketPrice: String = "",
     val totalTickets: String = "",
     val imageUrl: String = "",
+    val wines: List<Wine> = emptyList(),
     val timestamp: Long = System.currentTimeMillis()
 )
 

@@ -13,7 +13,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.mark.shereheke.data.EventViewModel
-import com.mark.shereheke.models.sampleEvents
 import com.mark.shereheke.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,11 +80,12 @@ fun CheckoutScreen(
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
-                    onClick = { navController.navigate(Screen.Payment.createRoute(it.id)) },
+                    onClick = { navController.navigate(Screen.Payment.createRoute(it.id, quantity)) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Proceed to Payment")
                 }
+                Spacer(modifier = Modifier.height(24.dp))
             }
         } ?: Box(
             modifier = Modifier
@@ -101,5 +101,5 @@ fun CheckoutScreen(
 @Preview(showBackground = true)
 @Composable
 fun CheckoutScreenPreview() {
-    CheckoutScreen(rememberNavController(), sampleEvents[0].id)
+    CheckoutScreen(rememberNavController(), "1")
 }

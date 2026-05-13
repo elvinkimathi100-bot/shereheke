@@ -4,16 +4,17 @@ import AuthViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,26 @@ fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = vi
     val context = LocalContext.current
     val authViewModel = remember { AuthViewModel(navController, context) }
     val user = authViewModel.userData
+    
+    var selectedCategory by remember { mutableStateOf("All Events") }
+    
+    // Broadened filtering logic to ensure "Jazz Night" and other categories match correctly
+    val filteredEvents = remember(selectedCategory, events) {
+        if (selectedCategory == "All Events") {
+            events
+        } else {
+            events.filter { event ->
+                val category = event.category.lowercase().trim()
+                val title = event.title.lowercase().trim()
+                val target = selectedCategory.lowercase().trim()
+                
+                // Match if category or title contains the selected word
+                // e.g., target "jazz" matches "Jazz Night"
+                category.contains(target) || title.contains(target) || 
+                (target.contains("jazz") && (category.contains("music") || category.contains("jazz")))
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -114,16 +135,24 @@ fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = vi
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // Horizontal scrollable categories
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                LuxuryChip("All Events", selected = true)
-                LuxuryChip("Jazz Night")
-                LuxuryChip("Rooftop")
-                LuxuryChip("Gala")
+                val categories = listOf("All Events", "Jazz Night", "Rooftop", "Gala", "Music", "Food & Drink")
+                categories.forEach { category ->
+                    LuxuryChip(
+                        text = category,
+                        selected = selectedCategory == category,
+                        onClick = { 
+                            selectedCategory = category 
+                        }
+                    )
+                }
             }
 
             if (events.isEmpty()) {
@@ -137,19 +166,36 @@ fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = vi
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     item {
                         Text(
-                            text = "Featured Experiences",
+                            text = if (selectedCategory == "All Events") "Featured Experiences" else "$selectedCategory Experiences",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
-                    items(events) { event ->
-                        FeaturedEventCard(event = event) {
-                            navController.navigate(Screen.EventDetail.createRoute(event.id))
+                    
+                    if (filteredEvents.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No $selectedCategory found.",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        items(filteredEvents) { event ->
+                            FeaturedEventCard(event = event) {
+                                navController.navigate(Screen.EventDetail.createRoute(event.id))
+                            }
                         }
                     }
                 }
@@ -159,11 +205,12 @@ fun HomeScreen(navController: NavController, eventViewModel: EventViewModel = vi
 }
 
 @Composable
-fun LuxuryChip(text: String, selected: Boolean = false) {
+fun LuxuryChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
+        onClick = onClick, // Explicitly using Surface's onClick for reliability
         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(20.dp),
-        border = if (!selected) borderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
+        border = if (!selected) borderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)) else null,
         modifier = Modifier.padding(vertical = 4.dp)
     ) {
         Text(

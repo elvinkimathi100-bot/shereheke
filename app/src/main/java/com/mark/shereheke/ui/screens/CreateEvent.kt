@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -50,16 +51,25 @@ fun AddEventScreen(navController: NavController, eventViewModel: EventViewModel 
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var showSuccess by remember { mutableStateOf(false) }
 
+    // Wine Selection State
+    var wineList by remember { mutableStateOf(listOf<Pair<String, Uri>>()) }
+    var currentWineName by remember { mutableStateOf("") }
+    var currentWineUri by remember { mutableStateOf<Uri?>(null) }
+
     val context = LocalContext.current
 
     val categories = listOf(
-        "Music", "Food & Drink", "Arts", "Sports",
-        "Networking", "Comedy", "Fashion", "Tech"
+        "Jazz Night", "Music", "Food & Drink", "Arts", "Sports",
+        "Networking", "Comedy", "Fashion", "Tech", "Rooftop", "Gala"
     )
 
-    val imagePicker = rememberLauncherForActivityResult(
+    val bannerPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> imageUri = uri }
+
+    val wineImagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> currentWineUri = uri }
 
     val scrollState = rememberScrollState()
 
@@ -125,7 +135,7 @@ fun AddEventScreen(navController: NavController, eventViewModel: EventViewModel 
                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
                         RoundedCornerShape(20.dp)
                     )
-                    .clickable { imagePicker.launch("image/*") },
+                    .clickable { bannerPicker.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
                 if (imageUri != null) {
@@ -149,13 +159,94 @@ fun AddEventScreen(navController: NavController, eventViewModel: EventViewModel 
             EventTextField(eventDescription, { eventDescription = it }, "Description", "Tell people what to expect...", Icons.Default.Description)
 
             Text("Category")
-            FlowRow {
-                categories.forEach {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                categories.forEach { category ->
                     FilterChip(
-                        selected = selectedCategory == it,
-                        onClick = { selectedCategory = it },
-                        label = { Text(it) }
+                        selected = selectedCategory == category,
+                        onClick = { selectedCategory = category },
+                        label = { Text(category) }
                     )
+                }
+            }
+
+            // Jazz Night Specific: Wine Upload Section
+            if (selectedCategory == "Jazz Night" || selectedCategory == "Music" || selectedCategory == "Food & Drink") {
+                SectionLabel(icon = "🍷", title = "Wine Selection (Jazz Night Specials)")
+                
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = currentWineName,
+                            onValueChange = { currentWineName = it },
+                            label = { Text("Wine Name") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.Gray.copy(alpha = 0.2f))
+                                    .clickable { wineImagePicker.launch("image/*") },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (currentWineUri != null) {
+                                    AsyncImage(model = currentWineUri, contentDescription = null, contentScale = ContentScale.Crop)
+                                } else {
+                                    Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                                }
+                            }
+                            
+                            Button(
+                                onClick = {
+                                    if (currentWineName.isNotBlank() && currentWineUri != null) {
+                                        wineList = wineList + (currentWineName to currentWineUri!!)
+                                        currentWineName = ""
+                                        currentWineUri = null
+                                    } else {
+                                        Toast.makeText(context, "Enter wine name and select image", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Add Wine")
+                            }
+                        }
+                    }
+                }
+
+                // Display added wines
+                wineList.forEachIndexed { index, wine ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = wine.second,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(wine.first, fontWeight = FontWeight.Medium)
+                        }
+                        IconButton(onClick = { wineList = wineList.toMutableList().apply { removeAt(index) } }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                        }
+                    }
                 }
             }
 
@@ -201,9 +292,10 @@ fun AddEventScreen(navController: NavController, eventViewModel: EventViewModel 
                         totalTickets = totalTickets
                     )
 
-                    eventViewModel.uploadImageAndAddEvent(
+                    eventViewModel.uploadEventWithWines(
                         context = context,
-                        imageUri = imageUri!!,
+                        bannerUri = imageUri!!,
+                        wineUris = wineList,
                         event = event,
                         onSuccess = {
                             showSuccess = true

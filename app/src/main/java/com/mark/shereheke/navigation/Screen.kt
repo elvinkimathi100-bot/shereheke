@@ -11,8 +11,8 @@ sealed class Screen(val route: String) {
     object Checkout : Screen("checkout/{eventId}") {
         fun createRoute(eventId: String) = "checkout/$eventId"
     }
-    object Payment : Screen("payment/{eventId}") {
-        fun createRoute(eventId: String) = "payment/$eventId"
+    object Payment : Screen("payment/{eventId}/{quantity}") {
+        fun createRoute(eventId: String, quantity: Int) = "payment/$eventId/$quantity"
     }
     object MyTickets : Screen("myTickets")
     object HotelDashboard : Screen("hotelDashboard")
